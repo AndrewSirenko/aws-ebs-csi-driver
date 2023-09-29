@@ -24,24 +24,18 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
-	"strconv"
 )
 
 const (
-	initialVolumeSizeGi     = 2
-	volumeSizeIncreaseAmtGi = 2
-
 	blockSizeTestValue      = "1024"
 	inodeSizeTestValue      = "512"
 	bytesPerInodeTestValue  = "8192"
 	numberOfInodesTestValue = "200192"
+
+	expectedBytesPerInodeTestResult = "131072" // TODO having this here is code smell. Hardcode? Test case from original inode PR #1661 https://github.com/kubernetes-sigs/aws-ebs-csi-driver/pull/1661
 )
 
-// TODO is this a clean place for this?
 var (
-	// TODO having this here is code smell. Hardcode? Test case from original inode PR #1661 https://github.com/kubernetes-sigs/aws-ebs-csi-driver/pull/1661
-	expectedBytesPerInodeTestResult = strconv.Itoa(131072 * initialVolumeSizeGi)
-
 	formatOptionTests = []testsuites.FormatOptionTest{
 		{
 			CreateVolumeParameterKey:        ebscsidriver.BlockSizeKey,
@@ -64,7 +58,8 @@ var (
 			CreateVolumeParameterKey:        ebscsidriver.NumberOfINodesKey,
 			CreateVolumeParameterValue:      numberOfInodesTestValue,
 			ExpectedFilesystemInfoParamName: "Inode count",
-			ExpectedFilesystemInfoParamVal:  numberOfInodesTestValue},
+			ExpectedFilesystemInfoParamVal:  numberOfInodesTestValue,
+		},
 	}
 )
 
@@ -88,19 +83,15 @@ var _ = Describe("[ebs-csi-e2e] [single-az] [format-options] Formatting a volume
 
 	for _, fsType := range testedFsTypes {
 		Context(fmt.Sprintf("with an %s filesystem", fsType), func() {
-			// TODO: is formatOptionTestCase clear? Or should it be 'formatOptionTestCaseValues'
 			for _, formatOptionTestCase := range formatOptionTests {
+				formatOptionTestCase := formatOptionTestCase // Go trap
 				if fsTypeDoesNotSupportFormatOptionParameter(fsType, formatOptionTestCase.CreateVolumeParameterKey) {
 					continue
 				}
 
 				Context(fmt.Sprintf("with a custom %s parameter", formatOptionTestCase.CreateVolumeParameterKey), func() {
 					It("successfully mounts and is resizable", func() {
-						test := testsuites.FormatOptionTest{
-							CSIDriver:                   ebsDriver,
-							testsuites.FormatOptionTest: formatOptionTestCase,
-						}
-						test.Run(cs, ns)
+						formatOptionTestCase.Run(cs, ns, ebsDriver, fsType)
 					})
 				})
 			}

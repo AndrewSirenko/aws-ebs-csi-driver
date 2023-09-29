@@ -17,6 +17,7 @@ package testsuites
 import (
 	"fmt"
 	awscloud "github.com/kubernetes-sigs/aws-ebs-csi-driver/pkg/cloud"
+	"github.com/kubernetes-sigs/aws-ebs-csi-driver/tests/e2e/driver"
 	"github.com/onsi/gomega/format"
 	v1 "k8s.io/api/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -39,9 +40,8 @@ type FormatOptionTest struct {
 }
 
 const (
-	volumeSizeIncreaseAmtGi = 2
-
-	volumeMountPath = "/mnt/test-format-option" // TODO should I keep this as mnt/test-1, and refactor to be `DefaultMountPath` globally in testsuites?
+	volumeSizeIncreaseAmtGi = 1
+	volumeMountPath         = "/mnt/test-format-option" // TODO should I keep this as mnt/test-1, and refactor to be `DefaultMountPath` globally in testsuites?
 )
 
 var (
@@ -50,7 +50,7 @@ var (
 
 )
 
-func (t *FormatOptionTest) Run(client clientset.Interface, namespace *v1.Namespace, fsType string) {
+func (t *FormatOptionTest) Run(client clientset.Interface, namespace *v1.Namespace, ebsDriver driver.PVTestDriver, fsType string) {
 	By("setting up pvc")
 	volumeDetails := createFormatOptionVolumeDetails(fsType, volumeMountPath, t)
 	testPvc, _ := volumeDetails.SetupDynamicPersistentVolumeClaim(client, namespace, ebsDriver)
@@ -79,14 +79,14 @@ func (t *FormatOptionTest) Run(client clientset.Interface, namespace *v1.Namespa
 }
 
 // TODO should we improve this across e2e tests via builder design pattern? Or is that not go-like?
-func createFormatOptionVolumeDetails(fsType string, volumeMountPath string, t FormatOptionTest) *VolumeDetails {
+func createFormatOptionVolumeDetails(fsType string, volumeMountPath string, t *FormatOptionTest) *VolumeDetails {
 	allowVolumeExpansion := true
 
 	volume := VolumeDetails{
 		VolumeType:   awscloud.VolumeTypeGP2,
 		FSType:       fsType,
 		MountOptions: []string{"rw"},
-		ClaimSize:    fmt.Sprintf("%vGi", initialVolumeSizeGi),
+		ClaimSize:    driver.MinimumSizeForVolumeType(awscloud.VolumeTypeGP2),
 		VolumeMount: VolumeMountDetails{
 			NameGenerate:      "test-volume-format-option",
 			MountPathGenerate: volumeMountPath,
@@ -109,16 +109,17 @@ func createPodWithVolume(client clientset.Interface, namespace *v1.Namespace, cm
 	return testPod
 }
 
-// TODO: Maybe should use something other than Find(), but *shrug*
-// TODO should I move this to go ?
-// TODO Should I instead use RunHostCmd or LookForString from https://github.com/kubernetes/kubernetes/blob/master/test/e2e/framework/pod/output/output.go ?
+// TODO should I move this to testsuites.go ?
 
 // FindRegexpInPodLogs searches given testPod's logs for a given regular expression. Returns `true` if found.
 func FindRegexpInPodLogs(regexpPattern string, testPod *TestPod) bool {
+	By(fmt.Sprintf("Searching for matching regexp '%s' in logs of pod", regexpPattern))
 	podLogs, err := testPod.Logs()
-	framework.ExpectNoError(err, "Tried getting logs for pod %s", format.Object(testPod, 2))
+	framework.ExpectNoError(err, "tried getting logs for pod %s", format.Object(testPod, 2))
 
 	var expectedLine = regexp.MustCompile(regexpPattern)
+
 	res := expectedLine.Find(podLogs)
+	framework.Logf("result of regexp search through pod logs: '%s'", string(res))
 	return res != nil
 }
