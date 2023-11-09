@@ -3,7 +3,7 @@ module github.com/kubernetes-sigs/aws-ebs-csi-driver
 require (
 	github.com/aws/aws-sdk-go v1.46.3
 	github.com/awslabs/volume-modifier-for-k8s v0.1.3
-	github.com/container-storage-interface/spec v1.8.0
+	github.com/container-storage-interface/spec v1.9.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/kubernetes-csi/csi-proxy/client v1.1.3
