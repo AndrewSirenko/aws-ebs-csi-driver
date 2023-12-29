@@ -20,9 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/awslabs/volume-modifier-for-k8s/pkg/rpc"
@@ -347,6 +349,15 @@ func (d *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			errCode = codes.NotFound
 		case errors.Is(err, cloud.ErrIdempotentParameterMismatch), errors.Is(err, cloud.ErrAlreadyExists):
 			errCode = codes.AlreadyExists
+			klog.InfoS("[CC] Volume creation failed due to missing KMS perms, sleeping for 15s before attempting to CreateVolume with new client token")
+			time.Sleep(15 * time.Second)
+			klog.InfoS("[CC] Attempting to CreateVolume with new client token")
+			disk, err = d.cloud.CreateDisk(ctx, volName+strconv.Itoa(rand.Intn(100)), opts)
+			if err != nil {
+				klog.InfoS("[CC] Failed retry of CreateVolume with new client token. KMS Perms still missing")
+				return nil, status.Errorf(errCode, "[CC] KMS Key Perms for EBS CSI Driver role missing")
+			}
+			return newCreateVolumeResponse(disk, responseCtx), nil
 		default:
 			errCode = codes.Internal
 		}
