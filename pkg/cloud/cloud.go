@@ -573,6 +573,7 @@ func (c *cloud) CreateDisk(ctx context.Context, volumeName string, diskOptions *
 		requestInput.SnapshotId = aws.String(snapshotID)
 	}
 
+	klog.InfoS("[CC] Calling EC2 CreateVolume", "ClientToken", requestInput.ClientToken)
 	response, err := c.ec2.CreateVolumeWithContext(ctx, requestInput)
 	if err != nil {
 		if isAWSErrorSnapshotNotFound(err) {
@@ -594,7 +595,9 @@ func (c *cloud) CreateDisk(ctx context.Context, volumeName string, diskOptions *
 		return nil, fmt.Errorf("disk size was not returned by CreateVolume")
 	}
 
+	klog.InfoS("[CC] Waiting for volume by polling EC2 DescribeVolumes", "volID", volumeID)
 	if err := c.waitForVolume(ctx, volumeID); err != nil {
+		klog.InfoS("[CC] Could not find volume", "volID", volumeID)
 		// To avoid leaking volume, we should delete the volume just created
 		// TODO: Need to figure out how to handle DeleteDisk failed scenario instead of just log the error
 		if _, error := c.DeleteDisk(ctx, volumeID); error != nil {
@@ -604,6 +607,7 @@ func (c *cloud) CreateDisk(ctx context.Context, volumeName string, diskOptions *
 		}
 		return nil, fmt.Errorf("failed to get an available volume in EC2: %w", err)
 	}
+	klog.InfoS("[CC] Volume was created", "volID", volumeID)
 
 	outpostArn := aws.StringValue(response.OutpostArn)
 	var resources []*string
