@@ -143,6 +143,15 @@ const (
 const (
 	volumeIDBatcher batcherType = iota
 	volumeTagBatcher
+	instanceIDBatcher
+
+	maxEntriesBatchDescribeVolumes   = 500
+	maxDelayBatchDescribeVolumes     = 1 * time.Second
+	maxEntriesBatchDescribeInstances = 50
+	maxDelayBatchDescribeInstances   = 500 * time.Millisecond
+
+	// batchDescribeTimeout sets the maximum TODO Name and description
+	batchDescribeTimeout = 30 * time.Second
 )
 
 var (
@@ -245,7 +254,8 @@ type batcherType int
 
 // batcherManager maintains a collection of batchers for different types of tasks.
 type batcherManager struct {
-	batchers map[batcherType]*batcher.Batcher[string, *ec2.Volume]
+	batchers                  map[batcherType]*batcher.Batcher[string, *ec2.Volume] // TODO standardize
+	describeInstancesBatchers map[batcherType]*batcher.Batcher[string, *ec2.Instance]
 }
 
 type cloud struct {
@@ -328,22 +338,28 @@ func newEC2Cloud(region string, awsSdkDebugLog bool, userAgentExtra string) Clou
 func newBatcherManager(svc ec2iface.EC2API) *batcherManager {
 	return &batcherManager{
 		batchers: map[batcherType]*batcher.Batcher[string, *ec2.Volume]{
-			volumeIDBatcher: batcher.New(500, 1*time.Second, func(ids []string) (map[string]*ec2.Volume, error) {
+			volumeIDBatcher: batcher.New(maxEntriesBatchDescribeVolumes, maxDelayBatchDescribeVolumes, func(ids []string) (map[string]*ec2.Volume, error) { // TODO make these batcher names hardcoded somewhere
 				return execBatchDescribeVolumes(svc, ids, volumeIDBatcher)
 			}),
-			volumeTagBatcher: batcher.New(500, 1*time.Second, func(names []string) (map[string]*ec2.Volume, error) {
+			volumeTagBatcher: batcher.New(maxEntriesBatchDescribeVolumes, maxDelayBatchDescribeVolumes, func(names []string) (map[string]*ec2.Volume, error) {
 				return execBatchDescribeVolumes(svc, names, volumeTagBatcher)
+			}),
+		},
+		describeInstancesBatchers: map[batcherType]*batcher.Batcher[string, *ec2.Instance]{
+			instanceIDBatcher: batcher.New(maxEntriesBatchDescribeInstances, maxDelayBatchDescribeInstances, func(ids []string) (map[string]*ec2.Instance, error) {
+				return execBatchDescribeInstances(svc, ids)
 			}),
 		},
 	}
 }
 
+// TODO getDescribeVolumesBatcher
 // getBatcher fetches a specific type of batcher from the batcherManager.
 func (bm *batcherManager) getBatcher(b batcherType) *batcher.Batcher[string, *ec2.Volume] {
 	return bm.batchers[b]
 }
 
-// executes a batched DescribeVolumes API call depending on the type of batcher.
+// execBatchDescribeVolumes executes a batched DescribeVolumes API call depending on the type of batcher.
 func execBatchDescribeVolumes(svc ec2iface.EC2API, input []string, batcher batcherType) (map[string]*ec2.Volume, error) {
 	var request *ec2.DescribeVolumesInput
 
@@ -370,7 +386,7 @@ func execBatchDescribeVolumes(svc ec2iface.EC2API, input []string, batcher batch
 		return nil, fmt.Errorf("execBatchDescribeVolumes: unsupported request type")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), batchDescribeTimeout)
 	defer cancel()
 
 	resp, err := describeVolumes(ctx, svc, request)
@@ -682,6 +698,61 @@ func (c *cloud) DeleteDisk(ctx context.Context, volumeID string) (bool, error) {
 		return false, fmt.Errorf("DeleteDisk could not delete volume: %w", err)
 	}
 	return true, nil
+}
+
+// executes a batched DescribeInstances API call
+func execBatchDescribeInstances(svc ec2iface.EC2API, input []string) (map[string]*ec2.Instance, error) {
+	klog.V(7).InfoS("execBatchDescribeInstances", "instanceIds", input)
+	request := &ec2.DescribeInstancesInput{
+		InstanceIds: aws.StringSlice(input),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), batchDescribeTimeout)
+	defer cancel()
+
+	resp, err := describeInstances(ctx, svc, request)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]*ec2.Instance)
+
+	for _, instance := range resp {
+		if instance.InstanceId == nil {
+			klog.Warningf("execBatchDescribeInstances: skipping instance: %v, reason: missing volume ID", instance)
+			continue
+		}
+		result[*instance.InstanceId] = instance
+	}
+
+	klog.V(7).InfoS("execBatchDescribeInstances: success", "result", result)
+	return result, nil
+}
+
+// batchDescribeInstances processes a DescribeInstances request by queuing the task and waiting for the result.
+func (c *cloud) batchDescribeInstances(request *ec2.DescribeInstancesInput) (*ec2.Instance, error) {
+	var task string
+
+	if len(request.InstanceIds) == 1 && request.InstanceIds[0] != nil {
+		task = *request.InstanceIds[0]
+	} else {
+		return nil, fmt.Errorf("batchDescribeInstances: invalid request, request: %v", request)
+	}
+
+	ch := make(chan batcher.BatchResult[*ec2.Instance])
+
+	b := c.bm.describeInstancesBatchers[instanceIDBatcher] // TODO cleaner version of this?
+	b.AddTask(task, ch)
+
+	r := <-ch
+
+	if r.Err != nil {
+		return nil, r.Err
+	}
+	if r.Result == nil {
+		return nil, fmt.Errorf("batchDescribeInstances: no instance found %s", task)
+	}
+	return r.Result, nil
 }
 
 // Node likely bad device names cache
@@ -1166,20 +1237,16 @@ func (c *cloud) getVolume(ctx context.Context, request *ec2.DescribeVolumesInput
 	}
 }
 
-func (c *cloud) getInstance(ctx context.Context, nodeID string) (*ec2.Instance, error) {
+func describeInstances(ctx context.Context, svc ec2iface.EC2API, request *ec2.DescribeInstancesInput) ([]*ec2.Instance, error) {
 	instances := []*ec2.Instance{}
-	request := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{&nodeID},
-	}
-
 	var nextToken *string
 	for {
-		response, err := c.ec2.DescribeInstancesWithContext(ctx, request)
+		response, err := svc.DescribeInstancesWithContext(ctx, request)
 		if err != nil {
 			if isAWSErrorInstanceNotFound(err) {
 				return nil, ErrNotFound
 			}
-			return nil, fmt.Errorf("error listing AWS instances: %w", err)
+			return nil, fmt.Errorf("error listing AWS instances: %w", err) // TODO Q should this be here still in batched case? Or modified
 		}
 
 		for _, reservation := range response.Reservations {
@@ -1190,16 +1257,34 @@ func (c *cloud) getInstance(ctx context.Context, nodeID string) (*ec2.Instance, 
 		if aws.StringValue(nextToken) == "" {
 			break
 		}
-		request.NextToken = nextToken
+		request.NextToken = nextToken // TODO DREW consider pagination for max batch size of instances
 	}
 
-	if l := len(instances); l > 1 {
-		return nil, fmt.Errorf("found %d instances with ID %q", l, nodeID)
-	} else if l < 1 {
-		return nil, ErrNotFound
+	return instances, nil
+}
+
+func (c *cloud) getInstance(ctx context.Context, nodeID string) (*ec2.Instance, error) {
+	request := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{&nodeID},
 	}
 
-	return instances[0], nil
+	if c.bm == nil {
+		instances, err := describeInstances(ctx, c.ec2, request)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO should I bring these errors outside of if because they apply to batched and unbatched versions of this?
+		if l := len(instances); l > 1 {
+			return nil, fmt.Errorf("found %d instances with ID %q", l, nodeID)
+		} else if l < 1 {
+			return nil, ErrNotFound
+		}
+
+		return instances[0], nil
+	} else {
+		return c.batchDescribeInstances(request)
+	}
 }
 
 func (c *cloud) getSnapshot(ctx context.Context, request *ec2.DescribeSnapshotsInput) (*ec2.Snapshot, error) {

@@ -112,7 +112,7 @@ func TestBatchDescribeVolumes(t *testing.T) {
 		},
 		{
 			name:    "TestBatchDescribeVolumes: max capacity",
-			volumes: generateVolumes(500, 0),
+			volumes: generateVolumes(500, 0), // TODO no magic number
 			mockFunc: func(mockEC2 *MockEC2API, expErr error, volumes []*ec2.Volume) {
 				volumeOutput := &ec2.DescribeVolumesOutput{Volumes: volumes}
 				mockEC2.EXPECT().DescribeVolumesWithContext(gomock.Any(), gomock.Any()).Return(volumeOutput, expErr).Times(1)
@@ -121,7 +121,7 @@ func TestBatchDescribeVolumes(t *testing.T) {
 		},
 		{
 			name:    "TestBatchDescribeVolumes: capacity exceeded",
-			volumes: generateVolumes(550, 0),
+			volumes: generateVolumes(550, 0), // TODO no magic number
 			mockFunc: func(mockEC2 *MockEC2API, expErr error, volumes []*ec2.Volume) {
 				volumeOutput := &ec2.DescribeVolumesOutput{Volumes: volumes}
 				mockEC2.EXPECT().DescribeVolumesWithContext(gomock.Any(), gomock.Any()).Return(volumeOutput, expErr).Times(2)
@@ -154,7 +154,6 @@ func TestBatchDescribeVolumes(t *testing.T) {
 				},
 			},
 			mockFunc: func(mockEC2 *MockEC2API, expErr error, volumes []*ec2.Volume) {
-
 				volumeOutput := &ec2.DescribeVolumesOutput{Volumes: volumes}
 				mockEC2.EXPECT().DescribeVolumesWithContext(gomock.Any(), gomock.Any()).Return(volumeOutput, expErr).Times(0)
 			},
@@ -223,7 +222,7 @@ func executeDescribeVolumesTest(t *testing.T, c *cloud, volumeIDs, volumeNames [
 			}
 			resultCh <- volume
 			// passing `request` as a parameter to create a copy
-			// TODO remove after https://github.com/golang/go/discussions/56010 is implemented
+			// TODO remove after migrating to go v1.22 (see https://github.com/golang/go/discussions/56010)
 		}(request, r[i], e[i])
 	}
 
@@ -916,6 +915,53 @@ func TestDeleteDisk(t *testing.T) {
 		})
 	}
 }
+
+//func TestBatchDescribeInstances(t *testing.T) {
+//	testCases := []struct {
+//		name string
+//		numInstances int
+//		expErr error
+//		mockFunc func(mockEC2 *MockEC2API, expErr error, volumes []*ec2.Volume)
+//	}{
+//		{
+//		name: "TestBatchDescribeInstances: instance by ID",
+//		numInstances: 2,
+//		mockFunc: ,
+//		expErr: nil,
+//		},
+//		{
+//			name: "TestBatchDescribeInstances: max capacity",
+//			numInstances: ,
+//			mockFunc: ,
+//			expErr: nil,
+//		},
+//		{
+//			name: "TestBatchDescribeInstances: capacity exceeded",
+//			numInstances: ,
+//			mockFunc: ,
+//			expErr: nil,
+//		},
+//		{
+//			name: "TestBatchDescribeInstances: EC2 API generic error",
+//			numInstances: ,
+//			mockFunc: ,
+//			expErr: nil,
+//		},
+//		{
+//			name: "TestBatchDescribeInstances: instance not found",
+//			numInstances: ,
+//			mockFunc: ,
+//			expErr: nil,
+//		},
+//	}
+//
+//	for _, tc := range testCases {
+//		tc := tc
+//		t.Run(tc.name, func(t *testing.T) {
+//
+//		})
+//	}
+//}
 
 func TestAttachDisk(t *testing.T) {
 	blockDeviceInUseErr := awserr.New("InvalidParameterValue", "Invalid value '"+defaultPath+"' for unixDevice. Attachment point "+defaultPath+" is already in use", nil)
