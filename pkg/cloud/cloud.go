@@ -139,12 +139,6 @@ const (
 	AwsEbsDriverTagKey = "ebs.csi.aws.com/cluster"
 )
 
-// Batcher
-const (
-	volumeIDBatcher batcherType = iota
-	volumeTagBatcher
-)
-
 var (
 	// ErrMultiDisks is an error that is returned when multiple
 	// disks are found with the same volume name.
@@ -240,12 +234,10 @@ type ec2ListSnapshotsResponse struct {
 	NextToken *string
 }
 
-// batcherType is an enum representing the types of batchers available.
-type batcherType int
-
 // batcherManager maintains a collection of batchers for different types of tasks.
 type batcherManager struct {
-	batchers map[batcherType]*batcher.Batcher[string, *ec2.Volume]
+	volumeIDBatcher  *batcher.Batcher[string, *ec2.Volume]
+	volumeTagBatcher *batcher.Batcher[string, *ec2.Volume]
 }
 
 type cloud struct {
@@ -259,22 +251,7 @@ var _ Cloud = &cloud{}
 
 // NewCloud returns a new instance of AWS cloud
 // It panics if session is invalid
-func NewCloud(region string, awsSdkDebugLog bool, userAgentExtra string, batching bool) (Cloud, error) {
-	c := newEC2Cloud(region, awsSdkDebugLog, userAgentExtra)
-
-	if batching {
-		klog.V(4).InfoS("NewCloud: batching enabled")
-		cloudInstance, ok := c.(*cloud)
-		if !ok {
-			return nil, fmt.Errorf("expected *cloud type but got %T", c)
-		}
-		cloudInstance.bm = newBatcherManager(cloudInstance.ec2)
-	}
-
-	return c, nil
-}
-
-func newEC2Cloud(region string, awsSdkDebugLog bool, userAgentExtra string) Cloud {
+func NewCloud(region string, awsSdkDebugLog bool, userAgentExtra string, batching bool) Cloud {
 	awsConfig := &aws.Config{
 		Region:                        aws.String(region),
 		CredentialsChainVerboseErrors: aws.Bool(true),
@@ -321,40 +298,39 @@ func newEC2Cloud(region string, awsSdkDebugLog bool, userAgentExtra string) Clou
 		region: region,
 		dm:     dm.NewDeviceManager(),
 		ec2:    svc,
+		bm:     newBatcherManager(svc, batching),
 	}
 }
 
 // newBatcherManager initializes a new instance of batcherManager.
-func newBatcherManager(svc ec2iface.EC2API) *batcherManager {
-	return &batcherManager{
-		batchers: map[batcherType]*batcher.Batcher[string, *ec2.Volume]{
+func newBatcherManager(svc ec2iface.EC2API, batching bool) *batcherManager {
+	if batching {
+		klog.V(4).InfoS("newBatcherManager: batching enabled")
+		return &batcherManager{
 			volumeIDBatcher: batcher.New(500, 1*time.Second, func(ids []string) (map[string]*ec2.Volume, error) {
-				return execBatchDescribeVolumes(svc, ids, volumeIDBatcher)
+				return execBatchDescribeVolumes(svc, ids, 1)
 			}),
 			volumeTagBatcher: batcher.New(500, 1*time.Second, func(names []string) (map[string]*ec2.Volume, error) {
-				return execBatchDescribeVolumes(svc, names, volumeTagBatcher)
+				return execBatchDescribeVolumes(svc, names, 2)
 			}),
-		},
+		}
+	} else {
+		return nil
 	}
 }
 
-// getBatcher fetches a specific type of batcher from the batcherManager.
-func (bm *batcherManager) getBatcher(b batcherType) *batcher.Batcher[string, *ec2.Volume] {
-	return bm.batchers[b]
-}
-
 // executes a batched DescribeVolumes API call depending on the type of batcher.
-func execBatchDescribeVolumes(svc ec2iface.EC2API, input []string, batcher batcherType) (map[string]*ec2.Volume, error) {
+func execBatchDescribeVolumes(svc ec2iface.EC2API, input []string, batcher int) (map[string]*ec2.Volume, error) {
 	var request *ec2.DescribeVolumesInput
 
 	switch batcher {
-	case volumeIDBatcher:
+	case 1:
 		klog.V(7).InfoS("execBatchDescribeVolumes", "volumeIds", input)
 		request = &ec2.DescribeVolumesInput{
 			VolumeIds: aws.StringSlice(input),
 		}
 
-	case volumeTagBatcher:
+	case 2:
 		klog.V(7).InfoS("execBatchDescribeVolumes", "names", input)
 		filters := []*ec2.Filter{
 			{
@@ -396,16 +372,16 @@ func execBatchDescribeVolumes(svc ec2iface.EC2API, input []string, batcher batch
 // batchDescribeVolumes processes a DescribeVolumes request. Depending on the request,
 // it determines the appropriate batcher to use, queues the task, and waits for the result.
 func (c *cloud) batchDescribeVolumes(request *ec2.DescribeVolumesInput) (*ec2.Volume, error) {
-	var bType batcherType
+	var b *batcher.Batcher[string, *ec2.Volume]
 	var task string
 
 	switch {
 	case len(request.VolumeIds) == 1 && request.VolumeIds[0] != nil:
-		bType = volumeIDBatcher
+		b = c.bm.volumeIDBatcher
 		task = *request.VolumeIds[0]
 
 	case len(request.Filters) == 1 && *request.Filters[0].Name == "tag:"+VolumeNameTagKey && len(request.Filters[0].Values) == 1:
-		bType = volumeTagBatcher
+		b = c.bm.volumeTagBatcher
 		task = *request.Filters[0].Values[0]
 
 	default:
@@ -414,7 +390,6 @@ func (c *cloud) batchDescribeVolumes(request *ec2.DescribeVolumesInput) (*ec2.Vo
 
 	ch := make(chan batcher.BatchResult[*ec2.Volume])
 
-	b := c.bm.getBatcher(bType)
 	b.AddTask(task, ch)
 
 	r := <-ch
