@@ -157,6 +157,7 @@ require (
 
 replace (
 	github.com/google/cel-go => github.com/google/cel-go v0.17.7 // Mitigate https://github.com/kubernetes/apiserver/issues/97
+	github.com/danwinship/knftables => sigs.k8s.io/knftables v0.0.13
 	k8s.io/api => k8s.io/api v0.29.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.29.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.29.2
