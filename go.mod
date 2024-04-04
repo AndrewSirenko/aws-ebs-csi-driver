@@ -124,7 +124,7 @@ require (
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
@@ -156,8 +156,8 @@ require (
 )
 
 replace (
-	github.com/google/cel-go => github.com/google/cel-go v0.17.7 // Mitigate https://github.com/kubernetes/apiserver/issues/97
 	github.com/danwinship/knftables => sigs.k8s.io/knftables v0.0.13
+	github.com/google/cel-go => github.com/google/cel-go v0.17.7 // Mitigate https://github.com/kubernetes/apiserver/issues/97
 	k8s.io/api => k8s.io/api v0.29.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.29.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.29.2
@@ -191,4 +191,4 @@ replace (
 	vbom.ml/util => github.com/fvbommel/util v0.0.2 // Mitigate https://github.com/fvbommel/util/issues/6
 )
 
-go 1.22
+go 1.22.2
