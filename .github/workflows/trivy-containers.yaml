@@ -68,7 +68,7 @@ jobs:
         run: docker pull ${{ matrix.image }}
 
       - name: Scan container image
-        uses: aquasecurity/trivy-action@0.16.1
+        uses: aquasecurity/trivy-action@0.25.0
         with:
           image-ref: '${{ matrix.image }}'
           output: 'results.sarif'
