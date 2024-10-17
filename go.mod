@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.17
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.182.0
 	github.com/aws/smithy-go v1.22.0
-	github.com/awslabs/volume-modifier-for-k8s v0.3.1
+	github.com/awslabs/volume-modifier-for-k8s v0.3.2
 	github.com/container-storage-interface/spec v1.10.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
@@ -34,7 +34,7 @@ require (
 	k8s.io/kubernetes v1.31.1
 	k8s.io/mount-utils v0.31.1
 	k8s.io/pod-security-admission v0.31.1
-	k8s.io/utils v0.0.0-20240902221715-702e33fdd3c3
+	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
 )
 
 require (
@@ -127,7 +127,7 @@ require (
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20241007155032-5fefd90f89a9 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
@@ -139,11 +139,11 @@ require (
 	k8s.io/component-helpers v0.31.1 // indirect
 	k8s.io/controller-manager v0.31.1 // indirect
 	k8s.io/kms v0.31.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20240903163716-9e1beecbcb38 // indirect
+	k8s.io/kube-openapi v0.0.0-20241009091222-67ed5848f094 // indirect
 	k8s.io/kubectl v0.31.1 // indirect
 	k8s.io/kubelet v0.31.1 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
-	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
+	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
