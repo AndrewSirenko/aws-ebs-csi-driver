@@ -26,12 +26,12 @@ require (
 	golang.org/x/sys v0.26.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
-	k8s.io/api v0.31.1
-	k8s.io/apimachinery v0.31.1
+	k8s.io/api v0.31.2
+	k8s.io/apimachinery v0.31.2
 	k8s.io/client-go v1.5.2
 	k8s.io/component-base v0.31.1
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubernetes v1.31.1
+	k8s.io/kubernetes v1.31.2
 	k8s.io/mount-utils v0.31.1
 	k8s.io/pod-security-admission v0.31.1
 	k8s.io/utils v0.0.0-20240902221715-702e33fdd3c3
@@ -136,13 +136,13 @@ require (
 	k8s.io/apiextensions-apiserver v0.31.1 // indirect
 	k8s.io/apiserver v0.31.1 // indirect
 	k8s.io/cloud-provider v0.31.1 // indirect
-	k8s.io/component-helpers v0.31.1 // indirect
+	k8s.io/component-helpers v0.31.2 // indirect
 	k8s.io/controller-manager v0.31.1 // indirect
-	k8s.io/kms v0.31.1 // indirect
+	k8s.io/kms v0.31.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20240903163716-9e1beecbcb38 // indirect
 	k8s.io/kubectl v0.31.1 // indirect
 	k8s.io/kubelet v0.31.1 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
