@@ -339,6 +339,66 @@ Blindly return:
     - STAGE\_UNSTAGE\_VOLUME
 ```
 
+## Coalescing ControllerExpandVolume & ControllerModifyVolume
+
+### EC2 ModifyVolume and Request Coalescing
+
+AWS exposes one unified ModifyVolume API to change the size, volume-type, IOPS, or throughput of your volume. AWS imposes a 6-hour cooldown after a successful volume modification.
+
+However, the CSI Specification exposes two separate RPCs that rely on ebs-plugin calling this EC2 ModifyVolume API: ControllerExpandVolume, for increasing volume size, and ControllerModifyVolume, for all other volume modifications. To avoid the 6-hour cooldown, we coalesce these separate expansion and modification requests by waiting for up to two seconds, and then perform one merged EC2 ModifyVolume API Call.
+
+Here is an overview of what may happen when you patch a PVC's size and VolumeAttributesClassName at the same time:
+
+```mermaid
+sequenceDiagram
+    participant o as Kubernetes
+    box ebs-csi-controller Pod
+        participant s as csi-resizer
+        participant p as ebs-plugin <br/> (controller service)
+    end
+    participant a as AWS API
+    participant n as ebs-plugin <br/> (node service)
+
+    o->>s: Updated PVC VACName + PVC capacity
+    activate o
+    activate s
+    
+    s->>p: ControllerExpandVolume RPC
+    activate p
+    note over p: Wait up to 2s for other RPC
+    s->>p:  ControllerModifyVolume RPC
+    
+    p->>p: Merge Expand + Modify Requests
+    p->>a: EC2 CreateTags
+    a-->>p: 
+    p->>a: EC2 ModifyVolume
+    activate a
+    a-->>p: 
+    p->>a: Poll EC2 DescribeVolumeModifications
+    note over a: 1+ seconds
+    a-->>p: Volume state == 'optimizing'
+    deactivate a
+    
+    p-->>s: EBS Volume Modified
+    s-->>o: Emit VolumeModify Success Event
+    p-->>s: EBS Volume Expanded
+    deactivate p
+    
+    alt if Block Device
+    s-->>o: Emit ExpandVolume Success Event
+    else if Filesystem
+    s-->>o: Mark PVC as FSResizeRequired
+    deactivate s
+    o->>n: Kubelet triggers NodeExpandVolume RPC
+    activate n
+    n->>n: Online resize of FS
+    note over n: 1+ seconds
+    n-->>o: Resize Success
+    deactivate n
+    deactivate o
+    end
+```
+
 ## Driver modes
 
 Traditionally, you run the CSI controllers together with the EBS driver in the same Kubernetes cluster.
