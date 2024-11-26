@@ -86,7 +86,7 @@ Note that it&#39;s task of the ebs-plugin to make these calls idempotent even if
 
 gRPC always passes a timeout together with a request. After this timeout, the gRPC client call actually returns. The server (i.e. ebs-plugin) can continue processing the call and finish the operation, however it has no means how to inform the client about the result.
 
-Kubernetes sidecars will retry failed calls, usually after some exponential backoff. These sidecars rely on idempotency here - i.e. when the plugin finished an operation after the client timed out, the plugin will get the same call again, and it should return success/error based on success/failure of the previous operation.
+Kubernetes sidecars will retry failed calls after exponential backoff. These sidecars rely on idempotency here - i.e. when ebs-plugin finished an operation after the client timed out, the ebs-plugin will get the same call again, and it should return success/error based on success/failure of the previous operation.
 
 Example:
 
@@ -100,11 +100,11 @@ Example:
 
 Note that there are some issues:
 
-- Kubernetes can change its mind at any time. E.g. a user that wanted to run a pod on the node in the example got impatient so he deleted the pod at step 4. In this case csi-attacher will call ControllerUnpublishVolume(vol1, nodeA) to &quot;cancel&quot; the attachment request. It&#39;s up to the driver to do the right thing - e.g. wait until the volume is attached and then issue detach() and wait until the volume is detached and \*then\* return from
+- Kubernetes can change its mind at any time. E.g. a user that wanted to run a pod on the node in the example got impatient so he deleted the pod at step 4. In this case csi-attacher will call ControllerUnpublishVolume(vol1, nodeA) to &quot;cancel&quot; the attachment request. It&#39;s up to the ebs-plugin to do the right thing - e.g. wait until the volume is attached and then issue detach() and wait until the volume is detached and \*then\* return from
 - Note that Kubernetes may time out waiting for ControllerUnpublishVolume too. In this case, it will keep calling it until it gets confirmation from the driver that the volume has been detached (i.e. until ebs-plugin returns either success or non-timeout error) or it needs the volume attached to the node again (and it will call ControllerPublishVolume in that case).
 - The same applies to NodeStage and NodePublish calls (&quot;mount device, mount volume&quot;). These are typically much faster than attach/detach, still they must be idempotent when it comes to timeouts.
 
-In summary, always check that if the required operation has already been done
+In summary, always check that if the required operation has already been done.
 
 ### Restarts
 
