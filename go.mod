@@ -11,7 +11,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
-	github.com/kubernetes-csi/csi-proxy/client v1.1.3
+	github.com/kubernetes-csi/csi-proxy/client v1.2.0
 	github.com/kubernetes-csi/csi-proxy/v2 v2.0.0-alpha.1
 	github.com/kubernetes-csi/csi-test/v5 v5.3.1
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
@@ -28,12 +28,12 @@ require (
 	golang.org/x/sys v0.29.0
 	google.golang.org/grpc v1.69.4
 	google.golang.org/protobuf v1.36.3
-	k8s.io/api v0.32.1
-	k8s.io/apimachinery v0.32.1
+	k8s.io/api v0.32.2
+	k8s.io/apimachinery v0.32.2
 	k8s.io/client-go v1.5.2
 	k8s.io/component-base v0.32.1
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubernetes v1.32.1
+	k8s.io/kubernetes v1.32.2
 	k8s.io/mount-utils v0.32.1
 	k8s.io/pod-security-admission v0.32.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
@@ -151,18 +151,18 @@ require (
 	k8s.io/apiextensions-apiserver v0.32.1 // indirect
 	k8s.io/apiserver v0.32.1 // indirect
 	k8s.io/cloud-provider v0.32.1 // indirect
-	k8s.io/component-helpers v0.32.1 // indirect
+	k8s.io/component-helpers v0.32.2 // indirect
 	k8s.io/controller-manager v0.32.1 // indirect
 	k8s.io/cri-api v0.32.1 // indirect
 	k8s.io/cri-client v0.32.1 // indirect
-	k8s.io/csi-translation-lib v0.32.1 // indirect
+	k8s.io/csi-translation-lib v0.32.2 // indirect
 	k8s.io/dynamic-resource-allocation v0.32.1 // indirect
-	k8s.io/kms v0.32.1 // indirect
+	k8s.io/kms v0.32.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 // indirect
 	k8s.io/kube-scheduler v0.32.1 // indirect
 	k8s.io/kubectl v0.32.1 // indirect
 	k8s.io/kubelet v0.32.1 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.1 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.5.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
