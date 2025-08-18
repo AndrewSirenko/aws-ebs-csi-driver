@@ -3,7 +3,7 @@ module github.com/kubernetes-sigs/aws-ebs-csi-driver/tests/e2e
 require (
 	github.com/aws/aws-sdk-go-v2 v1.38.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.0
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.243.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.244.0
 	github.com/google/uuid v1.6.0
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0
 	github.com/kubernetes-sigs/aws-ebs-csi-driver v1.46.0
@@ -12,7 +12,7 @@ require (
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v1.5.2
-	k8s.io/kubernetes v1.33.3
+	k8s.io/kubernetes v1.33.4
 	k8s.io/pod-security-admission v0.33.3
 )
 
@@ -28,7 +28,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sagemaker v1.208.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sagemaker v1.209.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.28.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.37.0 // indirect

@@ -4,8 +4,8 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.38.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.0
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.3
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.243.0
-	github.com/aws/aws-sdk-go-v2/service/sagemaker v1.208.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.244.0
+	github.com/aws/aws-sdk-go-v2/service/sagemaker v1.209.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.37.0
 	github.com/aws/smithy-go v1.22.5
 	github.com/awslabs/volume-modifier-for-k8s v0.7.0
@@ -27,12 +27,12 @@ require (
 	golang.org/x/sys v0.35.0
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.7
-	k8s.io/api v0.33.3
-	k8s.io/apimachinery v0.33.3
-	k8s.io/client-go v0.33.3
-	k8s.io/component-base v0.33.3
+	k8s.io/api v0.33.4
+	k8s.io/apimachinery v0.33.4
+	k8s.io/client-go v0.33.4
+	k8s.io/component-base v0.33.4
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/mount-utils v0.33.3
+	k8s.io/mount-utils v0.33.4
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 )
 
